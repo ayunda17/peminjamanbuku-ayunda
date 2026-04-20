@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Preview Sistem Notifikasi Modern</title>
+
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        /* Toast Notifications */
+        .toast-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 9999;
+            max-width: 400px;
+            pointer-events: none;
+        }
+
+        .toast-notification {
+            background: #10b981;
+            color: white;
+            padding: 16px 20px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            pointer-events: auto;
+            transform: translateX(100%);
+            opacity: 0;
+            transition: all 0.3s ease;
+            border-left: 4px solid #059669;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+
+        .toast-notification.show {
+            transform: translateX(0);
+            opacity: 1;
+        }
+
+        .toast-notification.error { background: #ef4444; border-left-color: #dc2626; }
+        .toast-notification.warning { background: #f59e0b; border-left-color: #d97706; }
+        .toast-notification.info { background: #3b82f6; border-left-color: #2563eb; }
+
+        .toast-icon { font-size: 18px; flex-shrink: 0; margin-top: 2px; }
+        .toast-content { flex: 1; min-width: 0; }
+        .toast-title { font-weight: 600; font-size: 14px; margin-bottom: 4px; line-height: 1.2; }
+        .toast-message { font-size: 13px; line-height: 1.4; opacity: 0.9; }
+        .toast-close { background: none; border: none; color: white; font-size: 16px; cursor: pointer; padding: 0; width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; border-radius: 50%; transition: background-color 0.2s; flex-shrink: 0; opacity: 0.7; }
+        .toast-close:hover { background-color: rgba(255, 255, 255, 0.2); opacity: 1; }
+
+        /* Notification Bell */
+        .notification-bell { position: relative; display: inline-block; margin-left: 15px; }
+        .bell-icon { font-size: 20px; color: #6b7280; cursor: pointer; padding: 8px; border-radius: 50%; transition: all 0.2s; position: relative; }
+        .bell-icon:hover { background-color: #f3f4f6; color: #374151; }
+        .notification-badge { position: absolute; top: 4px; right: 4px; background: #ef4444; color: white; border-radius: 50%; width: 18px; height: 18px; font-size: 11px; font-weight: 600; display: flex; align-items: center; justify-content: center; border: 2px solid white; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); }
+
+        /* Notification Dropdown */
+        .notification-dropdown { position: absolute; top: 50px; right: 0; width: 380px; max-height: 500px; background: white; border-radius: 12px; box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1); border: 1px solid #e5e7eb; display: none; z-index: 1000; overflow: hidden; }
+        .notification-dropdown.show { display: block; }
+        .notification-header { padding: 16px 20px; border-bottom: 1px solid #e5e7eb; background: #f9fafb; display: flex; justify-content: space-between; align-items: center; }
+        .notification-header h4 { margin: 0; font-size: 16px; font-weight: 600; color: #111827; }
+        .mark-all-read { background: none; border: none; color: #3b82f6; font-size: 13px; cursor: pointer; padding: 4px 8px; border-radius: 4px; transition: background-color 0.2s; }
+        .mark-all-read:hover { background-color: #eff6ff; }
+        .notification-list { max-height: 400px; overflow-y: auto; }
+        .notification-item { padding: 16px 20px; border-bottom: 1px solid #f3f4f6; cursor: pointer; transition: background-color 0.2s; display: flex; gap: 12px; align-items: flex-start; }
+        .notification-item:hover { background-color: #f9fafb; }
+        .notification-item.unread { background-color: #eff6ff; border-left: 3px solid #3b82f6; }
+        .notification-item-icon { font-size: 16px; flex-shrink: 0; margin-top: 2px; }
+        .notification-item-content { flex: 1; min-width: 0; }
+        .notification-item-title { font-weight: 600; font-size: 14px; color: #111827; margin-bottom: 4px; line-height: 1.2; }
+        .notification-item-message { font-size: 13px; color: #6b7280; line-height: 1.4; margin-bottom: 6px; }
+        .notification-item-time { font-size: 12px; color: #9ca3af; }
+
+        body { background-color: #f8f9fa; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        .navbar { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .demo-section { background: white; border-radius: 12px; padding: 2rem; margin-bottom: 2rem; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05); }
+        .btn-demo { margin: 0.5rem; padding: 0.75rem 1.5rem; border-radius: 8px; font-weight: 500; transition: all 0.3s ease; }
+        .btn-demo:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15); }
+    </style>
+</head>
+<body>
+    <!-- Toast Container -->
+    <div class="toast-container"></div>
+
+    <!-- Navbar dengan Bell Icon -->
+    <nav class="navbar navbar-expand-lg navbar-dark">
+        <div class="container">
+            <a class="navbar-brand" href="#">
+                <i class="fas fa-book"></i> Perpustakaan Digital
+            </a>
+
+            <div class="navbar-nav ms-auto">
+                <a class="nav-link" href="#">Dashboard</a>
+                <a class="nav-link" href="#">Buku</a>
+                <a class="nav-link" href="#">Peminjaman</a>
+                <div class="notification-bell">
+                    <span class="bell-icon" onclick="toggleNotifications()">🔔</span>
+                    <span class="notification-badge">3</span>
+                    <div class="notification-dropdown" id="notificationDropdown">
+                        <div class="notification-header">
+                            <h4>Notifikasi</h4>
+                            <button class="mark-all-read" onclick="markAllRead()">Tandai Semua Dibaca</button>
+                        </div>
+                        <div class="notification-list">
+                            <div class="notification-item unread" onclick="markAsRead(this)">
+                                <div class="notification-item-icon">✅</div>
+                                <div class="notification-item-content">
+                                    <div class="notification-item-title">Buku Berhasil Ditambahkan</div>
+                                    <div class="notification-item-message">Buku "Laskar Pelangi" telah ditambahkan ke perpustakaan</div>
+                                    <div class="notification-item-time">2 menit yang lalu</div>
+                                </div>
+                            </div>
+                            <div class="notification-item unread" onclick="markAsRead(this)">
+                                <div class="notification-item-icon">⚠️</div>
+                                <div class="notification-item-content">
+                                    <div class="notification-item-title">Stok Buku Menipis</div>
+                                    <div class="notification-item-message">Stok buku "Harry Potter" tersisa 2 buku</div>
+                                    <div class="notification-item-time">5 menit yang lalu</div>
+                                </div>
+                            </div>
+                            <div class="notification-item" onclick="markAsRead(this)">
+                                <div class="notification-item-icon">ℹ️</div>
+                                <div class="notification-item-content">
+                                    <div class="notification-item-title">Peminjaman Berhasil</div>
+                                    <div class="notification-item-message">Buku "Dilan 1990" berhasil dipinjam</div>
+                                    <div class="notification-item-time">1 jam yang lalu</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <div class="row">
+            <div class="col-12">
+                <div class="demo-section">
+                    <h2 class="mb-4">
+                        <i class="fas fa-bell"></i> Preview Sistem Notifikasi Modern
+                    </h2>
+
+                    <div class="alert alert-success">
+                        <h5><i class="fas fa-check-circle"></i> Fitur Yang Sudah Diimplementasi:</h5>
+                        <ul class="mb-0">
+                            <li>✅ Toast notifications dengan auto-hide</li>
+                            <li>✅ Bell icon dengan badge counter</li>
+                            <li>✅ Dropdown riwayat notifikasi</li>
+                            <li>✅ Responsive design</li>
+                            <li>✅ Animasi smooth</li>
+                            <li>✅ Berbagai jenis notifikasi (success, error, warning, info)</li>
+                        </ul>
+                    </div>
+
+                    <h4>Test Toast Notifications:</h4>
+                    <div class="mb-4">
+                        <button onclick="showToast('success', 'Buku Berhasil Ditambahkan', 'Buku Laskar Pelangi telah ditambahkan ke katalog')" class="btn btn-success btn-demo">
+                            <i class="fas fa-plus"></i> Success Toast
+                        </button>
+                        <button onclick="showToast('error', 'Gagal Memproses', 'Stok buku habis, tidak dapat dipinjam')" class="btn btn-danger btn-demo">
+                            <i class="fas fa-times"></i> Error Toast
+                        </button>
+                        <button onclick="showToast('warning', 'Stok Menipis', 'Stok buku Harry Potter tersisa 2 buku')" class="btn btn-warning btn-demo">
+                            <i class="fas fa-exclamation-triangle"></i> Warning Toast
+                        </button>
+                        <button onclick="showToast('info', 'Peminjaman Berhasil', 'Buku berhasil dipinjam, jangan lupa dikembalikan')" class="btn btn-info btn-demo">
+                            <i class="fas fa-info-circle"></i> Info Toast
+                        </button>
+                    </div>
+
+                    <div class="alert alert-info">
+                        <h5><i class="fas fa-code"></i> Cara Integrasi:</h5>
+                        <ol>
+                            <li>Jalankan <code>notifications_table.sql</code> untuk membuat tabel database</li>
+                            <li>Include <code>notifications.css</code> dan <code>notifications.js</code> di template</li>
+                            <li>Gunakan <code>createAndShowNotification()</code> setelah setiap aksi</li>
+                            <li>Bell icon akan otomatis muncul di navbar</li>
+                        </ol>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Toast notification system
+        function showToast(type, title, message, duration = 4000) {
+            const container = document.querySelector('.toast-container');
+            const toast = document.createElement('div');
+            toast.className = `toast-notification ${type}`;
+
+            const icon = {
+                'success': '✅',
+                'error': '❌',
+                'warning': '⚠️',
+                'info': 'ℹ️'
+            }[type] || 'ℹ️';
+
+            toast.innerHTML = `
+                <div class="toast-icon">${icon}</div>
+                <div class="toast-content">
+                    <div class="toast-title">${title}</div>
+                    <div class="toast-message">${message}</div>
+                </div>
+                <button class="toast-close" onclick="this.parentElement.remove()">×</button>
+            `;
+
+            container.appendChild(toast);
+
+            // Trigger animation
+            setTimeout(() => toast.classList.add('show'), 10);
+
+            // Auto remove
+            setTimeout(() => {
+                toast.classList.remove('show');
+                setTimeout(() => toast.remove(), 300);
+            }, duration);
+        }
+
+        // Notification dropdown functions
+        function toggleNotifications() {
+            const dropdown = document.getElementById('notificationDropdown');
+            dropdown.classList.toggle('show');
+        }
+
+        function markAsRead(element) {
+            element.classList.remove('unread');
+            updateBadge();
+        }
+
+        function markAllRead() {
+            document.querySelectorAll('.notification-item.unread').forEach(item => {
+                item.classList.remove('unread');
+            });
+            updateBadge();
+        }
+
+        function updateBadge() {
+            const unreadCount = document.querySelectorAll('.notification-item.unread').length;
+            const badge = document.querySelector('.notification-badge');
+
+            if (unreadCount > 0) {
+                badge.textContent = unreadCount;
+                badge.style.display = 'flex';
+            } else {
+                badge.style.display = 'none';
+            }
+        }
+
+        // Close dropdown when clicking outside
+        document.addEventListener('click', (e) => {
+            const dropdown = document.getElementById('notificationDropdown');
+            const bell = document.querySelector('.bell-icon');
+
+            if (!dropdown.contains(e.target) && e.target !== bell) {
+                dropdown.classList.remove('show');
+            }
+        });
+
+        // Initialize badge count
+        updateBadge();
+    </script>
+</body>
+</html>

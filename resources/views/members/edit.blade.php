@@ -1,0 +1,53 @@
+@extends('layouts.app')
+
+@section('title', 'Edit Anggota')
+
+@section('content')
+    <div class="row">
+        <div class="col-md-6 offset-md-3">
+            <div class="card">
+                <div class="card-header bg-warning text-white">
+                    <h5 class="mb-0">✏️ Edit Anggota</h5>
+                </div>
+                <div class="card-body">
+                    <form action="{{ route('members.update', $member) }}" method="POST">
+                        @csrf
+                        @method('PUT')
+
+                        <div class="mb-3">
+                            <label for="name" class="form-label">Nama <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control @error('name') is-invalid @enderror" id="name"
+                                name="name" value="{{ old('name', $member->name) }}" required>
+                            @error('name')
+                                <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="address" class="form-label">Alamat <span class="text-danger">*</span></label>
+                            <textarea class="form-control @error('address') is-invalid @enderror" id="address"
+                                name="address" rows="3" required>{{ old('address', $member->address) }}</textarea>
+                            @error('address')
+                                <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="phone" class="form-label">No HP <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control @error('phone') is-invalid @enderror" id="phone"
+                                name="phone" value="{{ old('phone', $member->phone) }}" required>
+                            @error('phone')
+                                <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
+                        </div>
+
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-warning">Perbarui</button>
+                            <a href="{{ route('members.index') }}" class="btn btn-secondary">Batal</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+@endsection

@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flowchart Sistem Peminjaman Buku Sekolah</title>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #333;
+        }
+        .container {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+        }
+        h1 {
+            text-align: center;
+            color: #4a5568;
+            margin-bottom: 10px;
+        }
+        .subtitle {
+            text-align: center;
+            color: #718096;
+            margin-bottom: 30px;
+            font-size: 1.1em;
+        }
+        .mermaid {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .legend {
+            background: #f7fafc;
+            border-left: 5px solid #4299e1;
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 20px;
+        }
+        .back-link {
+            display: inline-block;
+            margin-top: 20px;
+            padding: 10px 20px;
+            background: #48bb78;
+            color: white;
+            text-decoration: none;
+            border-radius: 10px;
+            transition: background 0.3s;
+        }
+        .back-link:hover {
+            background: #38a169;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📚 Flowchart Sistem Peminjaman Buku Sekolah</h1>
+        <p class="subtitle">Alur lengkap registrasi, validasi, peminjaman, dan pengembalian buku dengan mekanisme NIS & denda otomatis</p>
+        
+        <div class="mermaid">
+            graph TD
+                A[START] --> B[User Registrasi: Nama, NIS, Email]
+                B --> C{NIS terdaftar di DB Sekolah?}
+                C -->|Ya| D[Akun Langsung Aktif]
+                C -->|Tidak| E[Akun Pending - Tunggu Validasi Admin]
+                E --> F[Admin Lihat Daftar Pending]
+                F --> G{Admin Setuju?}
+                G -->|Ya| D
+                G -->|Tidak| H[Akun Ditolak<br/>Notifikasi Email]
+                H --> I[END Registrasi]
+                D --> J[User Login]
+                J --> K[Lihat Daftar Buku]
+                K --> L{Pilih Buku<br/>Tersedia?}
+                L -->|Tidak| K
+                L -->|Ya| M{Cek Batas Maksimal<br/>Peminjaman User?}
+                M -->|Lewat Batas| K
+                M -->|Masih Bisa| N[Ajukan Peminjaman]
+                N --> O[Buku Dipinjam<br/>Stok -1<br/>Record Loan Dibuat]
+                O --> P[END Peminjaman]
+                P --> Q[User Kembali Buku]
+                Q --> R[Input Tanggal Pengembalian]
+                R --> S{Cek Keterlambatan?}
+                S -->|Ya| T[Hitung Denda<br/>Rp 1.000/hari]
+                S -->|Tidak| U[Denda = 0]
+                T --> V[Status: Selesai<br/>Stok +1]
+                U --> V
+                V --> W[END Pengembalian]
+                
+                style A fill:#68d391
+                style P fill:#48bb78
+                style W fill:#48bb78
+                style I fill:#f56565
+                style C fill:#ed8936
+                style L fill:#ed8936
+                style M fill:#ed8936
+                style S fill:#ed8936
+                style G fill:#ed8936
+        </div>
+
+        <div class="legend">
+            <h4>🔑 Legenda Simbol:</h4>
+            <ul>
+                <li><strong>Oval (hijau)</strong>: Start/End proses utama</li>
+                <li><strong>Persegi panjang</strong>: Proses/aktivitas</li>
+                <li><strong>Belah ketupat (kuning)</strong>: Keputusan/validasi</li>
+                <li><strong>Panah</strong>: Alur proses</li>
+            </ul>
+            <p><strong>Fitur Khusus:</strong> Validasi NIS otomatis, Approval admin, Batas peminjaman, Denda otomatis Rp1.000/hari keterlambatan.</p>
+        </div>
+
+        <a href="/" class="back-link">🏠 Kembali ke Beranda Sistem</a>
+    </div>
+
+    <script>
+        mermaid.initialize({ startOnLoad: true, theme: 'default' });
+    </script>
+</body>
+</html>
