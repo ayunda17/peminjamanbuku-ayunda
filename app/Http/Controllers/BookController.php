@@ -5,9 +5,10 @@ namespace App\Http\Controllers;
 use App\Models\Book;
 use App\Services\PaginationService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
-use Illuminate\Contracts\Filesystem\Filesystem;
 
 class BookController extends Controller
 {
@@ -67,27 +68,38 @@ class BookController extends Controller
             return redirect()->route('books.index')->with('error', 'Akses ditolak. Hanya admin yang dapat menambah buku.');
         }
 
-        $validated = $request->validate([
-            'title' => 'required|string|max:255',
-            'author' => 'required|string|max:255',
-            'publisher' => 'required|string|max:255',
-            'year' => 'required|integer|min:1900|max:2100',
-            'stock' => 'required|integer|min:0',
-            'genre' => 'required|string|in:"Fiksi / Novel",Romance,Horor,"Misteri / Thriller",Fantasi,"Sains Fiksi",Sejarah,Biografi,"Self-Improvement",Religi,Remaja,Komedi',
-            'cover' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
-        ]);
+        $supportsCover = $this->booksTableHasCoverColumn();
+        $validated = $request->validate($this->bookValidationRules($supportsCover));
+        $warning = null;
 
-        // Handle cover upload
-        $coverName = null;
-        if ($request->hasFile('cover')) {
-            $coverName = $this->storeCoverImage($request->file('cover'), $validated['title']);
+        if ($supportsCover) {
+            $validated['cover'] = null;
+
+            if ($request->hasFile('cover')) {
+                $coverName = $this->storeCoverImage($request->file('cover'), $validated['title']);
+
+                if ($coverName !== null) {
+                    $validated['cover'] = $coverName;
+                } else {
+                    $warning = 'Buku berhasil ditambahkan, tetapi cover gagal diunggah. Periksa storage server Laravel Cloud Anda.';
+                }
+            }
+        } elseif ($request->hasFile('cover')) {
+            $warning = 'Buku berhasil ditambahkan tanpa cover karena kolom cover belum tersedia di database server. Jalankan migrasi terbaru di Laravel Cloud.';
+            Log::warning('Book created without cover because books.cover column is missing.', [
+                'title' => $validated['title'],
+            ]);
         }
-
-        $validated['cover'] = $coverName;
         Book::create($validated);
 
-        return redirect()->route('books.index')
+        $redirect = redirect()->route('books.index')
             ->with('success', 'Buku berhasil ditambahkan!');
+
+        if ($warning !== null) {
+            $redirect->with('warning', $warning);
+        }
+
+        return $redirect;
     }
 
     /**
@@ -118,32 +130,39 @@ class BookController extends Controller
             return redirect()->route('books.index')->with('error', 'Akses ditolak. Hanya admin yang dapat mengedit buku.');
         }
 
-        $validated = $request->validate([
-            'title' => 'required|string|max:255',
-            'author' => 'required|string|max:255',
-            'publisher' => 'required|string|max:255',
-            'year' => 'required|integer|min:1900|max:2100',
-            'stock' => 'required|integer|min:0',
-            'genre' => 'required|string|in:"Fiksi / Novel",Romance,Horor,"Misteri / Thriller",Fantasi,"Sains Fiksi",Sejarah,Biografi,"Self-Improvement",Religi,Remaja,Komedi',
-            'cover' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
-        ]);
+        $supportsCover = $this->booksTableHasCoverColumn();
+        $validated = $request->validate($this->bookValidationRules($supportsCover));
+        $warning = null;
 
-        // Handle new cover upload & delete old one
-        if ($request->hasFile('cover')) {
-            // Delete old cover if exists
+        if ($supportsCover && $request->hasFile('cover')) {
             if ($book->cover && Storage::disk('public')->exists("covers/{$book->cover}")) {
                 Storage::disk('public')->delete("covers/{$book->cover}");
             }
 
-            // Store new cover
             $coverName = $this->storeCoverImage($request->file('cover'), $validated['title']);
-            $validated['cover'] = $coverName;
+
+            if ($coverName !== null) {
+                $validated['cover'] = $coverName;
+            } else {
+                $warning = 'Data buku berhasil diperbarui, tetapi cover gagal diunggah. Periksa storage server Laravel Cloud Anda.';
+            }
+        } elseif (!$supportsCover && $request->hasFile('cover')) {
+            $warning = 'Data buku berhasil diperbarui tanpa cover karena kolom cover belum tersedia di database server. Jalankan migrasi terbaru di Laravel Cloud.';
+            Log::warning('Book updated without cover because books.cover column is missing.', [
+                'book_id' => $book->id,
+            ]);
         }
 
         $book->update($validated);
 
-        return redirect()->route('books.index')
+        $redirect = redirect()->route('books.index')
             ->with('success', 'Buku berhasil diperbarui!');
+
+        if ($warning !== null) {
+            $redirect->with('warning', $warning);
+        }
+
+        return $redirect;
     }
 
     /**
@@ -175,18 +194,46 @@ class BookController extends Controller
      * Simpan cover image ke storage
      * Format nama file: slug-judul-buku_timestamp.extension
      */
-    private function storeCoverImage($file, $bookTitle)
+    private function storeCoverImage($file, $bookTitle): ?string
     {
-        // Buat nama file yang aman
         $filename = Str::slug($bookTitle) . '_' . time() . '.' . $file->getClientOriginalExtension();
-
-        // Simpan file ke storage/app/public/covers/
         $path = $file->storeAs('covers', $filename, 'public');
-        
-        // Pastikan storage symlink exists
+
+        if ($path === false) {
+            Log::warning('Failed to store book cover on public disk.', [
+                'filename' => $filename,
+                'disk' => 'public',
+            ]);
+
+            return null;
+        }
+
         $this->ensureStorageLink();
 
         return $filename;
+    }
+
+    private function bookValidationRules(bool $supportsCover): array
+    {
+        $rules = [
+            'title' => 'required|string|max:255',
+            'author' => 'required|string|max:255',
+            'publisher' => 'required|string|max:255',
+            'year' => 'required|integer|min:1900|max:2100',
+            'stock' => 'required|integer|min:0',
+            'genre' => 'required|string|in:Fiksi / Novel,Romance,Horor,Misteri / Thriller,Fantasi,Sains Fiksi,Sejarah,Biografi,Self-Improvement,Religi,Remaja,Komedi',
+        ];
+
+        if ($supportsCover) {
+            $rules['cover'] = 'nullable|image|mimes:jpg,jpeg,png|max:2048';
+        }
+
+        return $rules;
+    }
+
+    private function booksTableHasCoverColumn(): bool
+    {
+        return Schema::hasColumn('books', 'cover');
     }
     
     /**

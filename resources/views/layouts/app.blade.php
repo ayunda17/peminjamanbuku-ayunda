@@ -805,6 +805,13 @@
                     </div>
                 @endif
 
+                @if (session('warning'))
+                    <div class="alert alert-modern alert-warning fade-in-up">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        {{ session('warning') }}
+                    </div>
+                @endif
+
                 <!-- Page Content -->
                 @yield('content')
             </div>
